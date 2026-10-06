@@ -1,77 +1,61 @@
-# ML Agent Pipeline (Titanic EDA/Visualization Agents)
+🤖 MLCopilot
 
-An agentic pipeline (LangChain + LangGraph, Groq-hosted LLMs) that profiles a
-dataset and then either plans+generates+executes **visualization** code or
-**cleaning** code inside a Docker sandbox.
+MLCopilot is a small AI-assisted machine learning project that helps automate different parts of the machine learning workflow.
 
-The visualization graph (`step_1`, in `first_graph.py`) and the cleaning graph
-(`step_2`, in `second_graph.py`) are kept as two separate LangGraph graphs on
-purpose, since combining both planning stages in a single agent context
-exceeded the LLM's message length limit.
+You give it a dataset, and the system uses AI agents to analyze the data and guide it through different ML tasks. 🧠📊
 
-## Setup
+✨ Features
+🔍 Dataset Analysis
 
-1. Install dependencies (uv or pip):
-   ```
-   uv sync
-   # or
-   pip install -r requirements.txt
-   ```
-2. Copy your real API keys into `.env` (placeholders are checked in — do not
-   commit real keys):
-   ```
-   GROQ_API_KEY='...'
-   GOOGLE_API_KEY='...'   # currently unused by the code, safe to leave blank
-   ```
-3. Build the sandbox image the code executor runs generated scripts in:
-   ```
-   docker build -t ml-agent-sandbox -f docker/dockerfile .
-   ```
-4. Run the pipeline from the project root:
-   ```
-   python -m backend.main
-   ```
-   Output figures / cleaned dataset / cleaning report land in `outputs/`.
+Analyzes the dataset to understand its structure, columns, data types, missing values, and other basic information.
 
-## What was fixed
+📊 Exploratory Data Analysis
 
-- `backend/agents/workflows/state.py` — removed a dangling, unused
-  `third_state` class, and added `execution_stdout` / `execution_stderr` /
-  `execution_return_code` to the state schemas. LangGraph silently drops any
-  key a node returns that isn't declared in the state's TypedDict, so
-  stdout/stderr from the sandbox were being thrown away, making failures
-  impossible to debug.
-- `backend/agents/workflows/third_graph.py` — deleted. It imported a `State`
-  class that doesn't exist in `state.py`, and its node/edge wiring didn't
-  match either the visualization or cleaning pipeline (missing a `START`
-  edge, missing the planner/code-generator nodes), so it could never compile.
-  It wasn't referenced anywhere else in the project. If you want a single
-  combined pipeline (clean, then visualize the cleaned data) let me know and
-  I can build that as a proper third graph.
-- `backend/agents/docker_executer.py`:
-  - Now passes `DATASET_EXT` (derived from the input file's extension) into
-    the container as an environment variable, since the generated cleaning
-    script (`eda_code.py`'s prompt) reads `os.environ["DATASET_EXT"]` but the
-    old `docker run` command never set it — every cleaning run would crash
-    with a `KeyError` inside the sandbox.
-  - Strips accidental ```` ```python ... ``` ```` fences from LLM-generated
-    code before writing it to disk, since models occasionally ignore the
-    "no markdown" instruction and that alone was enough to break execution
-    with a `SyntaxError`.
-- `backend/agents/visual_code.py` — the prompt told the model to detect
-  CSV vs. Parquet from the file extension of `/data/dataset`, but that mount
-  path has no extension. It now uses the same `DATASET_EXT` environment
-  variable as the cleaning pipeline for reliable format detection.
-- `backend/main.py` — now prints `execution_stdout`/`execution_stderr` when a
-  run fails, and runs both pipelines (previously step_2 was commented out).
-- Removed the committed `.venv/` and `uv.lock` from the archive (regenerate
-  with `uv sync`) and stale `__pycache__` files that referenced modules that
-  no longer exist (`planner.py`, `workflow.py`, `data_agent.py`, `tools.py`).
+Helps explore the dataset and generates analysis and visualizations to better understand the data.
 
-## ⚠️ Rotate your API keys
+🧹 Data Preprocessing
 
-The uploaded project's `.env` contained **live** `GROQ_API_KEY` and
-`GOOGLE_API_KEY` values. I removed them from this archive and replaced them
-with placeholders, but since those keys were shared in this conversation you
-should treat them as compromised and rotate/revoke them from the Groq and
-Google AI consoles now.
+Handles common preprocessing steps such as splitting the data, dealing with different feature types, and preparing the dataset for training.
+
+🧠 Model Selection
+
+Analyzes the problem and helps choose suitable machine learning models for the dataset.
+
+🏋️ Model Training
+
+Trains the selected models and works with the prepared dataset to build the ML model.
+
+📈 Model Evaluation
+
+Evaluates the trained model using different metrics and tools such as confusion matrices and ROC-AUC.
+
+📉 Visualizations
+
+Generates visualizations that help understand the dataset and the performance of the trained models.
+
+🤖 AI Agents
+
+The different tasks are handled by specialized AI agents and workflows, with each agent responsible for a specific part of the ML process.
+
+🐳 Docker Execution
+
+Some generated code can be executed in a Docker environment to keep execution isolated from the main application.
+
+🔄 Overall Workflow
+📁 Dataset
+    ↓
+🔍 Analysis
+    ↓
+📊 EDA
+    ↓
+🧹 Preprocessing
+    ↓
+🧠 Model Selection
+    ↓
+🏋️ Training
+    ↓
+📈 Evaluation
+    ↓
+🔮 Predictions
+
+MLCopilot is mainly a project for experimenting with AI agents + machine learning workflows and seeing how different ML tasks can be connected together into one system.
